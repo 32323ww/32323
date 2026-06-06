@@ -35,6 +35,20 @@ function chunk(items, size) {
   return batches;
 }
 
+async function mapLimit(items, limit, mapper) {
+  const results = new Array(items.length);
+  let index = 0;
+  async function worker() {
+    while (index < items.length) {
+      const current = index;
+      index += 1;
+      results[current] = await mapper(items[current], current);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
 async function fetchJson(url, options = {}) {
   const response = await fetch(url, options);
   const text = await response.text();
@@ -67,7 +81,8 @@ async function exportNetlifyRows({ siteId, token, migrationPassword }) {
     const listed = await store.list();
     const keys = listed.blobs.map(blob => blob.key);
     summary[d1StoreName] = keys.length;
-    for (const key of keys) {
+    console.log(`Reading ${blobStoreName}: ${keys.length}`);
+    const storeRows = await mapLimit(keys, 12, async key => {
       let value = await store.get(key, { type: "json" });
       if (d1StoreName === "users" && value?.username) {
         const hashed = hashPassword(migrationPassword);
@@ -79,8 +94,9 @@ async function exportNetlifyRows({ siteId, token, migrationPassword }) {
           migratedAt: new Date().toISOString()
         };
       }
-      rows.push({ store: d1StoreName, key, value });
-    }
+      return { store: d1StoreName, key, value };
+    });
+    rows.push(...storeRows);
   }
   return { rows, summary };
 }
