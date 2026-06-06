@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "check:functions": "node --check netlify/lib/api.js && node --check netlify/functions/auth.js && node --check netlify/functions/progress.js && node --check netlify/functions/questions.js && node --check netlify/functions/admin.js && node --check netlify/functions/discussion.js"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^10.7.9"
+  }
+}

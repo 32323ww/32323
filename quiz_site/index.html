@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>毛概刷题站</title>
+  <link rel="stylesheet" href="./styles.css?v=20260605-local-ai-upload">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="./assets/textbook-page.png" alt="课本页缩略图">
+        <div>
+          <h1>毛概刷题站</h1>
+          <p>单选 · 多选 · 判断</p>
+        </div>
+        <button id="sidebarToggle" class="icon-btn sidebar-toggle" type="button" title="折叠功能区"><i data-lucide="panel-left-close"></i></button>
+      </div>
+
+      <nav class="nav" aria-label="主导航">
+        <button class="nav-btn active" data-view="practice"><i data-lucide="target"></i><span>练习</span></button>
+        <button class="nav-btn" data-view="exam"><i data-lucide="clipboard-check"></i><span>考试</span></button>
+        <button class="nav-btn" data-view="wrong"><i data-lucide="book-marked"></i><span>错题本</span></button>
+        <button class="nav-btn" data-view="studied"><i data-lucide="history"></i><span>已练习</span></button>
+        <button class="nav-btn" data-view="favorites"><i data-lucide="star"></i><span>收藏</span></button>
+        <button class="nav-btn" data-view="browse"><i data-lucide="search"></i><span>题库</span></button>
+        <button class="nav-btn" data-view="timeline"><i data-lucide="milestone"></i><span>时间线</span></button>
+        <button class="nav-btn" data-view="keypoints"><i data-lucide="notebook-tabs"></i><span>重点</span></button>
+        <button class="nav-btn" data-view="about"><i data-lucide="info"></i><span>说明</span></button>
+        <button class="nav-btn" data-view="discussion"><i data-lucide="messages-square"></i><span>讨论区</span></button>
+        <button id="manageNav" class="nav-btn hidden" data-view="manage"><i data-lucide="settings"></i><span>管理</span></button>
+      </nav>
+
+      <section class="account-panel">
+        <div class="account-head">
+          <h2>账号</h2>
+          <span id="cloudStatus" class="status-pill">本地</span>
+        </div>
+        <div id="accountSignedOut" class="account-form">
+          <input id="accountName" type="text" autocomplete="username" placeholder="账号">
+          <input id="accountPassword" type="password" autocomplete="current-password" placeholder="密码">
+          <div class="account-actions">
+            <button id="loginBtn" class="primary-btn" type="button"><i data-lucide="log-in"></i><span>登录</span></button>
+            <button id="registerBtn" class="soft-btn" type="button"><i data-lucide="user-plus"></i><span>注册</span></button>
+          </div>
+        </div>
+        <div id="accountSignedIn" class="account-signed hidden">
+          <strong id="currentUser">--</strong>
+          <div class="account-actions">
+            <button id="syncBtn" class="soft-btn" type="button"><i data-lucide="refresh-cw"></i><span>同步</span></button>
+            <button id="logoutBtn" class="soft-btn" type="button"><i data-lucide="log-out"></i><span>退出</span></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="filter-panel">
+        <h2>筛选</h2>
+        <label>章节
+          <select id="chapterFilter"></select>
+        </label>
+        <label>题型
+          <select id="typeFilter">
+            <option value="all">全部题型</option>
+            <option value="single">单选</option>
+            <option value="multi">多选</option>
+            <option value="judge">判断</option>
+          </select>
+        </label>
+        <label>来源
+          <select id="sourceFilter"></select>
+        </label>
+        <label>练习状态
+          <select id="statusFilter">
+            <option value="all">所有</option>
+            <option value="done">已做过</option>
+            <option value="undone">未做过</option>
+          </select>
+        </label>
+        <label>关键词
+          <input id="searchInput" type="search" placeholder="会议、人物、概念">
+        </label>
+        <div class="filter-actions">
+          <button id="shuffleBtn" class="icon-btn" title="随机换题"><i data-lucide="shuffle"></i></button>
+          <button id="resetFiltersBtn" class="icon-btn" title="重置筛选"><i data-lucide="rotate-ccw"></i></button>
+        </div>
+      </section>
+
+      <section class="mini-stats">
+        <div><strong id="totalCount">0</strong><span>总题</span></div>
+        <div><strong id="wrongCount">0</strong><span>错题</span></div>
+        <div><strong id="doneCount">0</strong><span>已掌握</span></div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">依据题库、课本 OCR 与易错大纲合并</p>
+          <h2 id="viewTitle">练习模式</h2>
+        </div>
+        <div class="top-actions">
+          <button id="addQuestionBtn" class="primary-btn hidden"><i data-lucide="plus"></i><span>新增题目</span></button>
+          <button id="bulkImportBtn" class="soft-btn hidden"><i data-lucide="file-up"></i><span>批量导题</span></button>
+          <button id="reviewWrongBtn" class="soft-btn"><i data-lucide="repeat-2"></i><span>只练错题</span></button>
+          <button id="resetMasteredBtn" class="soft-btn"><i data-lucide="rotate-ccw"></i><span>重置已掌握</span></button>
+          <button id="exportWrongBtn" class="soft-btn"><i data-lucide="download"></i><span>导出错题</span></button>
+        </div>
+      </header>
+
+      <section class="dashboard">
+        <div class="stat-card"><span>单选</span><strong id="singleCount">0</strong></div>
+        <div class="stat-card"><span>多选</span><strong id="multiCount">0</strong></div>
+        <div class="stat-card"><span>判断</span><strong id="judgeCount">0</strong></div>
+        <div class="stat-card"><span>本轮正确率</span><strong id="accuracy">--</strong></div>
+      </section>
+
+      <section id="practiceView" class="view active">
+        <div id="practiceCard" class="question-card"></div>
+      </section>
+
+      <section id="examView" class="view">
+        <div class="exam-setup">
+          <label>单选数量<input id="examSingle" type="number" min="0" max="80" value="20"></label>
+          <label>多选数量<input id="examMulti" type="number" min="0" max="80" value="10"></label>
+          <label>判断数量<input id="examJudge" type="number" min="0" max="80" value="10"></label>
+          <button id="startExamBtn" class="primary-btn"><i data-lucide="play"></i><span>生成试卷</span></button>
+          <button id="submitExamBtn" class="danger-btn" disabled><i data-lucide="send"></i><span>交卷</span></button>
+        </div>
+        <div id="examSummary" class="summary-line"></div>
+        <div id="examList" class="exam-list"></div>
+      </section>
+
+      <section id="wrongView" class="view">
+        <div class="wrong-toolbar">
+          <button id="clearWrongBtn" class="danger-btn"><i data-lucide="trash-2"></i><span>清空错题</span></button>
+          <button id="wrongPracticeBtn" class="primary-btn"><i data-lucide="list-restart"></i><span>按错题练习</span></button>
+        </div>
+        <div id="wrongList" class="browse-list"></div>
+        <div id="wrongPager" class="pager"></div>
+      </section>
+
+      <section id="studiedView" class="view">
+        <div class="browse-head">
+          <span id="studiedCount">0 题</span>
+          <span>按最后练习时间倒序显示</span>
+        </div>
+        <div id="studiedList" class="browse-list"></div>
+        <div id="studiedPager" class="pager"></div>
+      </section>
+
+      <section id="favoritesView" class="view">
+        <div class="browse-head">
+          <span id="favoritesCount">0 题</span>
+          <span>收藏会随账号同步</span>
+        </div>
+        <div id="favoritesList" class="browse-list"></div>
+        <div id="favoritesPager" class="pager"></div>
+      </section>
+
+      <section id="browseView" class="view">
+        <div class="browse-head">
+          <span id="browseCount">0 题</span>
+          <span>点击任意题目可展开答案解析</span>
+        </div>
+        <div id="browseList" class="browse-list"></div>
+        <div id="browsePager" class="pager"></div>
+      </section>
+
+      <section id="timelineView" class="view">
+        <div class="timeline-toolbar">
+          <label>类型
+            <select id="timelineKindFilter"></select>
+          </label>
+          <label>人物/主体
+            <select id="timelineActorFilter"></select>
+          </label>
+          <label>关键词
+            <input id="timelineSearch" type="search" placeholder="会议、文献、作用">
+          </label>
+          <button id="timelineResetBtn" class="soft-btn" type="button"><i data-lucide="rotate-ccw"></i><span>重置</span></button>
+          <button id="addTimelineBtn" class="primary-btn hidden" type="button"><i data-lucide="plus"></i><span>新增</span></button>
+        </div>
+        <div class="timeline-summary">
+          <span id="timelineCount">0 条</span>
+          <span>按时间整合课本中的会议、报告、文章、决议和重大理论提法</span>
+        </div>
+        <div class="timeline-layout">
+          <div id="timelineCards" class="timeline-list"></div>
+          <div class="timeline-table-wrap">
+            <table class="timeline-table">
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>人物/主体</th>
+                  <th>会议/文献</th>
+                  <th>作用/意义</th>
+                  <th>页码</th>
+                </tr>
+              </thead>
+              <tbody id="timelineTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="keypointsView" class="view">
+        <div class="timeline-toolbar">
+          <label>章节
+            <select id="keypointChapterFilter"></select>
+          </label>
+          <label>类型
+            <select id="keypointLevelFilter"></select>
+          </label>
+          <label>关键词
+            <input id="keypointSearch" type="search" placeholder="核心、关键、基础">
+          </label>
+          <button id="keypointResetBtn" class="soft-btn" type="button"><i data-lucide="rotate-ccw"></i><span>重置</span></button>
+          <button id="addKeypointBtn" class="primary-btn hidden" type="button"><i data-lucide="plus"></i><span>新增</span></button>
+        </div>
+        <div class="timeline-summary">
+          <span id="keypointCount">0 条</span>
+          <span>按章节整合 Word 中的核心提炼、关键概念和易考表述</span>
+        </div>
+        <div id="keypointsList" class="keypoints-list"></div>
+      </section>
+
+      <section id="aboutView" class="view">
+        <div class="version-hero">
+          <div>
+            <span class="badge chapter">当前版本</span>
+            <h2>2026.06.05-r11</h2>
+            <p>本页会随着每次网站功能更新同步刷新，用来快速确认新增能力、账号权限和使用入口。</p>
+          </div>
+          <div class="version-stats">
+            <strong>56</strong>
+            <span>时间线基础条目</span>
+          </div>
+          <div class="version-stats">
+            <strong>91</strong>
+            <span>章节重点基础条目</span>
+          </div>
+        </div>
+
+        <div class="version-grid">
+          <section class="version-card">
+            <h3><i data-lucide="user-check"></i><span>注册后可用功能</span></h3>
+            <ul class="version-list">
+              <li>账号同步已练习、错题本、收藏、已掌握记录，更换设备后登录即可继续刷题。</li>
+              <li>答对题目默认不再进入后续随机练习，错题仍会随机出现；可用重置按钮重新放回题池。</li>
+              <li>可以新增题库、手动新增题目、批量粘贴导入题目，并共享到用户新增题库。</li>
+              <li>可以修改题目的选项、答案、解析、来源等信息；上传时会自动检测并剔除重复题目。</li>
+              <li>可以在讨论区发帖和回复，也可以查看自己的已练习题目与收藏题目。</li>
+              <li>可以新增、编辑、删除时间线条目和章节重点，适合随课本与课堂重点继续补充。</li>
+            </ul>
+          </section>
+
+          <section class="version-card">
+            <h3><i data-lucide="map"></i><span>常用入口</span></h3>
+            <div class="feature-grid">
+              <div><strong>练习</strong><span>随机刷题，自动避开已答对题。</span></div>
+              <div><strong>错题本</strong><span>集中复盘错题，答对后可移出。</span></div>
+              <div><strong>题库</strong><span>搜索题目，按章节、题型、来源筛选。</span></div>
+              <div><strong>时间线</strong><span>查看会议、文献、理论提法和意义。</span></div>
+              <div><strong>重点</strong><span>按章节浏览核心提炼与易混点。</span></div>
+              <div><strong>管理</strong><span>登录后创建题库、导题、改题。</span></div>
+            </div>
+          </section>
+
+          <section class="version-card">
+            <h3><i data-lucide="file-clock"></i><span>版本记录</span></h3>
+            <div class="version-log">
+              <div class="version-log-item">
+                <time>2026-06-06</time>
+                <strong>时间线顺序调整</strong>
+                <p>注册用户可在时间线条目上使用上移/下移按钮调整展示顺序，调整结果会同步到线上。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-06</time>
+                <strong>单题加入随机池</strong>
+                <p>已练习题目列表新增“加入随机池”按钮，可把指定题目单独恢复为未做状态，重新参与普通随机练习。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-06</time>
+                <strong>错题练习与列表分页修复</strong>
+                <p>修复按错题练习被已做题过滤导致无题可刷的问题；错题本、已练习题目、收藏题目新增分页显示。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-05</time>
+                <strong>管理页分页更新</strong>
+                <p>账号管理新增分页显示；变更记录改为按页加载，可翻页查看历史操作，避免记录过多时页面过长。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-05</time>
+                <strong>本地豆包生成上传</strong>
+                <p>新增管理员 AI 解析上传接口；解析可先在本地调用豆包生成，再自动上传到线上题库，绕开 Netlify 普通函数超时限制。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-05</time>
+                <strong>豆包调用超时优化</strong>
+                <p>收紧 AI 输出上限并把线上函数超时控制在 Netlify 普通函数限制内，自动解析失败时会返回更明确的原因。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-05</time>
+                <strong>AI 自动解析稳态更新</strong>
+                <p>豆包自动解析改为小批次逐题处理，增加超时保护和更清晰的失败提示；后端仍只向豆包发送题干、题型和选项。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-05</time>
+                <strong>折叠、分页与置顶更新</strong>
+                <p>新增功能区折叠、回复区折叠、题库分页、练习状态筛选和讨论区置顶；随机练习只抽未做过题。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-05</time>
+                <strong>管理员与讨论区权限更新</strong>
+                <p>账号管理新增设为/取消管理员；注册用户可删除自己发布的帖子和回复，管理员仍可管理全部讨论内容。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-05</time>
+                <strong>线上后端豆包更新</strong>
+                <p>管理员后台新增 AI 解析更新入口；线上后端调用豆包，只向豆包发送题干、题型和选项，结果写入云端题库补丁。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-05</time>
+                <strong>豆包解析批处理支持</strong>
+                <p>新增豆包 API 批量生成解析脚本；AI 判断答案与原答案不一致时，题库将显示黄色答案争议标记。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-05</time>
+                <strong>题库状态与排序更新</strong>
+                <p>题库浏览按题号排序；已做对显示绿色，已做错显示红色，未做过保持白色。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-05</time>
+                <strong>说明页精简与来源合并</strong>
+                <p>精简说明页的权限说明；来源筛选合并为机房原题、学长回忆重点、其它题库。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-05</time>
+                <strong>说明页与内容权限更新</strong>
+                <p>新增版本说明和使用说明页面；注册用户现在可以删除时间线和章节重点条目。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-05</time>
+                <strong>时间线去重</strong>
+                <p>清理重复会议、文献和理论提法条目，保留更完整的课本页码与意义表述。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-04</time>
+                <strong>复习工具扩展</strong>
+                <p>增加题目搜索、上一题、已练习题目、收藏、讨论区回复、时间线和章节重点编辑。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-04</time>
+                <strong>账号与题库共建</strong>
+                <p>上线账号、云同步、用户题库、批量导题、重复题剔除和管理员审计功能。</p>
+              </div>
+              <div class="version-log-item">
+                <time>2026-06-04</time>
+                <strong>刷题站初版</strong>
+                <p>完成单选、多选、判断练习，支持错题本、模拟考试和来源筛选。</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="discussionView" class="view">
+        <div class="discussion-panel">
+          <div class="discussion-compose">
+            <textarea id="discussionInput" rows="4" placeholder="登录后可以在这里发言"></textarea>
+            <div class="discussion-actions">
+              <span id="discussionHint">注册或登录后可发言。</span>
+              <button id="postDiscussionBtn" class="primary-btn" type="button"><i data-lucide="send"></i><span>发布</span></button>
+            </div>
+          </div>
+          <div id="discussionList" class="discussion-list"></div>
+        </div>
+      </section>
+
+      <section id="manageView" class="view">
+        <div class="manage-grid">
+          <section class="manage-panel">
+            <h3>我的题库</h3>
+            <div class="inline-form">
+              <input id="newBankName" type="text" placeholder="新题库名称">
+              <button id="createBankBtn" class="primary-btn" type="button"><i data-lucide="folder-plus"></i><span>创建</span></button>
+            </div>
+            <div id="bankList" class="manage-list"></div>
+          </section>
+          <section id="adminAccountsPanel" class="manage-panel hidden">
+            <h3>账号管理</h3>
+            <div class="inline-form">
+              <input id="newAccountName" type="text" placeholder="账号">
+              <input id="newAccountPassword" type="text" placeholder="初始密码">
+              <button id="createAccountBtn" class="primary-btn" type="button"><i data-lucide="user-plus"></i><span>增加</span></button>
+            </div>
+            <div id="accountList" class="manage-list"></div>
+            <div id="accountPager" class="pager"></div>
+          </section>
+          <section id="adminAiPanel" class="manage-panel wide-panel hidden">
+            <h3>AI 解析更新</h3>
+            <div class="inline-form ai-inline-form">
+              <input id="aiBatchSize" type="number" min="1" max="2" value="2" title="每批最多 2 题">
+              <button id="aiReviewNextBtn" class="primary-btn" type="button"><i data-lucide="wand-sparkles"></i><span>更新下一批</span></button>
+              <button id="aiReviewForceBtn" class="soft-btn" type="button"><i data-lucide="refresh-cw"></i><span>重跑前一批</span></button>
+            </div>
+            <div id="aiReviewStatus" class="meta-line">仅管理员可用。后端只把题干、题型、选项发送给豆包；当前默认不要求联网，自动更新会按小批次处理。</div>
+          </section>
+          <section id="adminAuditPanel" class="manage-panel wide-panel hidden">
+            <h3>变更记录</h3>
+            <div id="auditList" class="audit-list"></div>
+            <div id="auditPager" class="pager"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="questionModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="questionFormTitle">
+    <div class="modal-backdrop" data-action="close-question-form"></div>
+    <form id="questionForm" class="modal-panel">
+      <header class="modal-head">
+        <h3 id="questionFormTitle">新增题目</h3>
+        <button id="closeQuestionModal" class="icon-btn" type="button" title="关闭"><i data-lucide="x"></i></button>
+      </header>
+      <input id="editQuestionId" type="hidden">
+      <div class="form-grid">
+        <label>题型
+          <select id="questionType">
+            <option value="single">单选</option>
+            <option value="multi">多选</option>
+            <option value="judge">判断</option>
+          </select>
+        </label>
+        <label>章节
+          <input id="questionChapter" type="text" placeholder="如 第三章">
+        </label>
+        <label>来源
+          <input id="questionSource" type="text" placeholder="如 机房原题">
+        </label>
+        <label>所属题库
+          <select id="questionBank"></select>
+        </label>
+        <label>答案
+          <input id="questionAnswer" type="text" placeholder="A 或 ABC">
+        </label>
+        <label>页码
+          <input id="questionPage" type="text" placeholder="如 63">
+        </label>
+      </div>
+      <label class="wide-field">题干
+        <textarea id="questionStem" rows="3"></textarea>
+      </label>
+      <label class="wide-field">选项
+        <textarea id="questionOptions" rows="5" placeholder="每行一个选项"></textarea>
+      </label>
+      <label class="wide-field">解析
+        <textarea id="questionAnalysis" rows="5"></textarea>
+      </label>
+      <label class="wide-field">逐项解析
+        <textarea id="questionOptionAnalysis" rows="5" placeholder="A=...\nB=..."></textarea>
+      </label>
+      <div class="modal-actions">
+        <button id="saveQuestionBtn" class="primary-btn" type="submit"><i data-lucide="save"></i><span>保存</span></button>
+      </div>
+    </form>
+  </div>
+
+  <div id="bulkImportModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="bulkImportTitle">
+    <div class="modal-backdrop" data-action="close-bulk-import"></div>
+    <form id="bulkImportForm" class="modal-panel">
+      <header class="modal-head">
+        <h3 id="bulkImportTitle">批量导入题目</h3>
+        <button class="icon-btn" type="button" data-action="close-bulk-import" title="关闭"><i data-lucide="x"></i></button>
+      </header>
+      <div class="form-grid">
+        <label>新增题库名称
+          <input id="bulkBankName" type="text" placeholder="如 期末补充题库">
+        </label>
+        <label>默认章节
+          <input id="bulkDefaultChapter" type="text" placeholder="如 第一章">
+        </label>
+        <label>默认页码
+          <input id="bulkDefaultPage" type="text" placeholder="可空">
+        </label>
+      </div>
+      <label class="wide-field">导题文本
+        <textarea id="bulkImportText" rows="14" placeholder="【题型】单选&#10;【题干】毛泽东思想初步形成的标志是？&#10;A. 农村包围城市、武装夺取政权道路理论形成&#10;B. 党的七大&#10;C. 十一届三中全会&#10;D. 科学发展观&#10;【答案】A&#10;【解析】土地革命战争时期，毛泽东关于中国革命道路的著作标志毛泽东思想初步形成。&#10;---"></textarea>
+      </label>
+      <div class="import-help">每道题用 --- 分隔；支持【题型】【章节】【题干】【答案】【解析】【页码】和 A./B./C./D. 选项。提交前会自动剔除相同题目。</div>
+      <div id="bulkPreview" class="import-preview"></div>
+      <div class="modal-actions">
+        <button id="previewBulkBtn" class="soft-btn" type="button"><i data-lucide="scan-text"></i><span>预览解析</span></button>
+        <button id="submitBulkBtn" class="primary-btn" type="submit"><i data-lucide="upload-cloud"></i><span>导入并共享</span></button>
+      </div>
+    </form>
+  </div>
+
+  <div id="contentModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="contentFormTitle">
+    <div class="modal-backdrop" data-action="close-content-form"></div>
+    <form id="contentForm" class="modal-panel">
+      <header class="modal-head">
+        <h3 id="contentFormTitle">编辑内容</h3>
+        <button class="icon-btn" type="button" data-action="close-content-form" title="关闭"><i data-lucide="x"></i></button>
+      </header>
+      <input id="contentType" type="hidden">
+      <input id="contentId" type="hidden">
+      <div id="timelineContentFields" class="form-grid">
+        <label>时间<input id="contentTime" type="text" placeholder="如 1939年10月4日"></label>
+        <label>人物/主体<input id="contentActor" type="text" placeholder="如 毛泽东"></label>
+        <label>类型<input id="contentKind" type="text" placeholder="文献/报告"></label>
+        <label>页码<input id="contentPage" type="text" placeholder="如 18"></label>
+        <label class="wide-field">名称<textarea id="contentName" rows="2"></textarea></label>
+        <label class="wide-field">作用/意义<textarea id="contentSignificance" rows="4"></textarea></label>
+        <label>章节<input id="contentChapter" type="text"></label>
+        <label>章节页码<input id="contentChapterPages" type="text"></label>
+      </div>
+      <div id="keypointContentFields" class="form-grid hidden">
+        <label>章节<input id="kpChapter" type="text"></label>
+        <label>章节页码<input id="kpChapterPages" type="text"></label>
+        <label>模块<input id="kpModule" type="text"></label>
+        <label>关键词<input id="kpKeyword" type="text"></label>
+        <label>类型<input id="kpLevel" type="text" placeholder="高频/理解/识记"></label>
+        <label>页码<input id="kpPage" type="text"></label>
+        <label class="wide-field">内容<textarea id="kpContent" rows="5"></textarea></label>
+      </div>
+      <div class="modal-actions">
+        <button id="deleteContentBtn" class="danger-btn hidden" type="button"><i data-lucide="trash-2"></i><span>删除</span></button>
+        <button id="saveContentBtn" class="primary-btn" type="submit"><i data-lucide="save"></i><span>保存</span></button>
+      </div>
+    </form>
+  </div>
+
+  <script src="./question-bank.js?v=20260605-local-ai-upload"></script>
+  <script src="./timeline-data.js?v=20260605-local-ai-upload"></script>
+  <script src="./keypoints-data.js?v=20260605-local-ai-upload"></script>
+  <script src="./app.js?v=20260605-local-ai-upload"></script>
+</body>
+</html>
