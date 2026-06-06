@@ -8,13 +8,13 @@ let KEYPOINTS_DATA = [...BASE_KEYPOINTS];
 const STORE_KEY = "maogai_quiz_state_v1";
 const AUTH_KEY = "maogai_auth_v1";
 const API = {
-  auth: "/.netlify/functions/auth",
-  progress: "/.netlify/functions/progress",
-  questions: "/.netlify/functions/questions",
-  aiReview: "/.netlify/functions/ai-review",
-  admin: "/.netlify/functions/admin",
-  discussion: "/.netlify/functions/discussion",
-  content: "/.netlify/functions/content"
+  auth: "/api/auth",
+  progress: "/api/progress",
+  questions: "/api/questions",
+  aiReview: "/api/ai-review",
+  admin: "/api/admin",
+  discussion: "/api/discussion",
+  content: "/api/content"
 };
 
 const TYPE_LABEL = {

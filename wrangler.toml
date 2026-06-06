@@ -1,0 +1,8 @@
+name = "32323"
+compatibility_date = "2026-06-06"
+pages_build_output_dir = "quiz_site"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "毛盖-DB"
+database_id = "55fb557a-95de-4bcc-9bae-e23a0e862381"
