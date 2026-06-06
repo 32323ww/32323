@@ -873,6 +873,29 @@ async function handleAdmin(request, env, url) {
     await writeAudit(env, auth.username, "account:delete", `delete account: ${username}`, { username });
     return json({ ok: true });
   }
+  if (action === "importNetlifyKv") {
+    const rows = Array.isArray(body.rows) ? body.rows.slice(0, 5000) : [];
+    if (!rows.length) return bad("No rows to import.", 400);
+    const allowedStores = new Set(["users", "progress", "questions", "content", "audit", "discussion"]);
+    let imported = 0;
+    const skipped = [];
+    for (const row of rows) {
+      const store = String(row?.store || "").trim();
+      const key = String(row?.key || "").trim();
+      if (!allowedStores.has(store) || !key) {
+        skipped.push({ store, key, reason: "invalid row" });
+        continue;
+      }
+      if (store === "users" && body.preserveExistingUsers !== false && await kvGet(env, "users", key)) {
+        skipped.push({ store, key, reason: "existing user preserved" });
+        continue;
+      }
+      await kvSet(env, store, key, row.value);
+      imported += 1;
+    }
+    await writeAudit(env, auth.username, "migration:netlify-import", `import Netlify rows: ${imported}, skipped: ${skipped.length}`, { imported, skipped });
+    return json({ ok: true, imported, skipped });
+  }
   return bad("Unknown action.", 400);
 }
 

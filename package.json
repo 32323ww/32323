@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "check:functions": "node --check netlify/lib/api.js && node --check netlify/functions/auth.js && node --check netlify/functions/progress.js && node --check netlify/functions/questions.js && node --check netlify/functions/admin.js && node --check netlify/functions/discussion.js"
+    "check:functions": "node --check netlify/lib/api.js && node --check netlify/functions/auth.js && node --check netlify/functions/progress.js && node --check netlify/functions/questions.js && node --check netlify/functions/admin.js && node --check netlify/functions/discussion.js && node --check functions/api/[[path]].js",
+    "migrate:netlify": "node scripts/migrate-netlify-to-cloudflare.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "^10.7.9"
