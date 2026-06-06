@@ -1,6 +1,6 @@
 const TOKEN_DAYS = 30;
 const LETTERS = ["A", "B", "C", "D", "E"];
-const API_VERSION = "20260606-auth-char-check";
+const API_VERSION = "20260606-auth-length-check";
 const schemaReady = new WeakSet();
 
 function json(data, status = 200) {
@@ -189,11 +189,7 @@ async function verifyToken(request, env) {
 function normalizeUsername(username) {
   const value = String(username || "").trim();
   const chars = Array.from(value);
-  const valid = chars.length >= 2 && chars.length <= 24 && chars.every(char => {
-    const code = char.codePointAt(0);
-    return char === "_" || (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || (code >= 0x4e00 && code <= 0x9fff);
-  });
-  if (!valid) throw new Error("Username must be 2-24 characters.");
+  if (chars.length < 2 || chars.length > 24) throw new Error("Username must be 2-24 characters.");
   return value;
 }
 
