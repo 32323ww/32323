@@ -131,7 +131,7 @@ async function hashPassword(password, salt = randomBase64Url(16)) {
   const bits = await crypto.subtle.deriveBits({
     name: "PBKDF2",
     salt: base64UrlToBytes(salt),
-    iterations: 120000,
+    iterations: 100000,
     hash: "SHA-256"
   }, key, 256);
   return { salt, hash: bytesToBase64Url(new Uint8Array(bits)) };
