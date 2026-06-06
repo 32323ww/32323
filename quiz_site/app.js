@@ -1554,6 +1554,28 @@ async function resetAccountPassword(username) {
   }
 }
 
+async function changeOwnPassword() {
+  if (!state.user?.token) return alert("请先登录账号。");
+  const currentPassword = byId("ownCurrentPassword").value;
+  const newPassword = byId("ownNewPassword").value;
+  if (!currentPassword || !newPassword) return alert("请输入当前密码和新密码。");
+  if (newPassword.length < 6) return alert("新密码至少需要 6 位。");
+  try {
+    byId("changeOwnPasswordBtn").disabled = true;
+    await apiRequest(API.auth, {
+      method: "POST",
+      body: JSON.stringify({ action: "changePassword", currentPassword, newPassword })
+    });
+    byId("ownCurrentPassword").value = "";
+    byId("ownNewPassword").value = "";
+    alert("密码已修改，请使用新密码登录。");
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    byId("changeOwnPasswordBtn").disabled = false;
+  }
+}
+
 function changeAdminUsersPage(direction) {
   const users = state.adminData.users || [];
   const totalPages = Math.max(1, Math.ceil(users.length / ADMIN_USERS_PAGE_SIZE));
@@ -2167,6 +2189,7 @@ function bindEvents() {
   byId("previewBulkBtn").addEventListener("click", previewBulkImport);
   byId("bulkImportForm").addEventListener("submit", submitBulkImport);
   byId("createBankBtn").addEventListener("click", createBank);
+  byId("changeOwnPasswordBtn").addEventListener("click", changeOwnPassword);
   byId("createAccountBtn").addEventListener("click", createAccount);
   byId("aiReviewNextBtn").addEventListener("click", () => runAiReviewBatch(false));
   byId("aiReviewForceBtn").addEventListener("click", () => runAiReviewBatch(true));

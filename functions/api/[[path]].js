@@ -561,6 +561,29 @@ async function handleAuth(request, env) {
   if (request.method !== "POST") return bad("Method not allowed.", 405);
   const body = await readJson(request);
   const action = String(body.action || "").trim();
+
+  if (action === "changePassword") {
+    const auth = await authContext(request, env);
+    const currentPassword = validatePassword(body.currentPassword);
+    const newPassword = validatePassword(body.newPassword);
+    const key = userKey(auth.username);
+    const user = await kvGet(env, "users", key);
+    if (!user) return bad("Account not found.", 404);
+    let verified = await verifyPassword(currentPassword, user);
+    if (!verified) {
+      verified = await verifyLegacyNetlifyLogin(env, auth.username, currentPassword);
+    }
+    if (!verified) return bad("Current password is wrong.", 401);
+    const hashed = await hashPassword(newPassword);
+    user.salt = hashed.salt;
+    user.hash = hashed.hash;
+    user.passwordChangedAt = new Date().toISOString();
+    user.passwordChangedBy = auth.username;
+    await kvSet(env, "users", key, user);
+    await writeAudit(env, auth.username, "account:password-change", `change own password: ${auth.username}`, { username: auth.username });
+    return json({ ok: true, user: { username: auth.username, isAdmin: await isAdminUser(env, auth.username), passwordChangedAt: user.passwordChangedAt } });
+  }
+
   const username = normalizeUsername(body.username);
   const password = validatePassword(body.password);
   const key = userKey(username);

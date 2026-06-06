@@ -389,6 +389,15 @@
             </div>
             <div id="bankList" class="manage-list"></div>
           </section>
+          <section class="manage-panel">
+            <h3>修改我的密码</h3>
+            <div class="inline-form">
+              <input id="ownCurrentPassword" type="password" autocomplete="current-password" placeholder="当前密码">
+              <input id="ownNewPassword" type="password" autocomplete="new-password" placeholder="新密码（至少 6 位）">
+              <button id="changeOwnPasswordBtn" class="primary-btn" type="button"><i data-lucide="key-round"></i><span>修改</span></button>
+            </div>
+            <div class="meta-line">如果账号来自旧 Netlify 站点，当前密码可直接填写原密码，系统会自动完成迁移。</div>
+          </section>
           <section id="adminAccountsPanel" class="manage-panel hidden">
             <h3>账号管理</h3>
             <div class="inline-form">
