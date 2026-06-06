@@ -1535,6 +1535,25 @@ async function setAccountAdmin(username, enabled) {
   }
 }
 
+async function resetAccountPassword(username) {
+  const password = prompt(`请输入账号 ${username} 的新密码（至少 6 位）`);
+  if (!password) return;
+  if (password.length < 6) return alert("新密码至少需要 6 位。");
+  if (!confirm(`确定重置账号 ${username} 的密码吗？`)) return;
+  try {
+    await apiRequest(API.admin, {
+      method: "POST",
+      body: JSON.stringify({ action: "resetPassword", username, password })
+    });
+    state.adminAuditPage = 1;
+    await loadAdminData();
+    renderManage();
+    alert(`账号 ${username} 的密码已重置。`);
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
 function changeAdminUsersPage(direction) {
   const users = state.adminData.users || [];
   const totalPages = Math.max(1, Math.ceil(users.length / ADMIN_USERS_PAGE_SIZE));
@@ -2032,6 +2051,7 @@ function renderManage() {
           <div class="manage-row-actions">
             ${user.isAdmin ? `<span class="badge">${user.isEnvAdmin ? "保留管理员" : "管理员"}</span>` : ""}
             ${user.username === state.user.username ? `<span class="badge chapter">当前账号</span>` : ""}
+            <button class="soft-btn" data-action="reset-password" data-user="${escapeHtml(user.username)}"><i data-lucide="key-round"></i><span>重置密码</span></button>
             ${!user.isEnvAdmin && user.username !== state.user.username ? `<button class="soft-btn" data-action="toggle-admin" data-user="${escapeHtml(user.username)}" data-admin="${user.isAdmin ? "false" : "true"}"><i data-lucide="${user.isAdmin ? "shield-minus" : "shield-plus"}"></i><span>${user.isAdmin ? "取消管理员" : "设为管理员"}</span></button>` : ""}
             ${!user.isAdmin && user.username !== state.user.username ? `<button class="soft-btn" data-action="delete-account" data-user="${escapeHtml(user.username)}"><i data-lucide="user-x"></i><span>删除</span></button>` : ""}
           </div>
@@ -2203,6 +2223,7 @@ function bindEvents() {
     if (name === "rename-bank") updateBank(action.dataset.id);
     if (name === "delete-bank") deleteBank(action.dataset.id);
     if (name === "toggle-admin") setAccountAdmin(action.dataset.user, action.dataset.admin === "true");
+    if (name === "reset-password") resetAccountPassword(action.dataset.user);
     if (name === "delete-account") deleteAccount(action.dataset.user);
     if (name === "filter-bank") {
       byId("sourceFilter").value = action.dataset.source;

@@ -142,6 +142,22 @@ async function verifyPassword(password, user) {
   return constantTimeEqual(current.hash, user.hash);
 }
 
+async function verifyLegacyNetlifyLogin(env, username, password) {
+  const legacyUrl = env.LEGACY_NETLIFY_AUTH_URL || "https://32323maogai.netlify.app/.netlify/functions/auth";
+  try {
+    const response = await fetch(legacyUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "login", username, password })
+    });
+    if (!response.ok) return false;
+    const data = await response.json().catch(() => null);
+    return Boolean(data?.ok);
+  } catch {
+    return false;
+  }
+}
+
 async function signPayload(payload, env) {
   const encoder = new TextEncoder();
   const secret = env.AUTH_SECRET || "maogai-cloudflare-local-secret-change-me";
@@ -557,8 +573,18 @@ async function handleAuth(request, env) {
     return json({ ok: true, user: { username, isAdmin: await isAdminUser(env, username) }, token: await signToken(username, env) });
   }
   if (action === "login") {
-    if (!existing || !(await verifyPassword(password, existing))) return bad("Wrong username or password.", 401);
+    if (!existing) return bad("Wrong username or password.", 401);
     const storedName = existing.username || username;
+    if (!(await verifyPassword(password, existing))) {
+      const legacyOk = await verifyLegacyNetlifyLogin(env, storedName, password);
+      if (!legacyOk) return bad("Wrong username or password.", 401);
+      const migrated = await hashPassword(password);
+      existing.salt = migrated.salt;
+      existing.hash = migrated.hash;
+      existing.passwordMigratedFromNetlifyAt = new Date().toISOString();
+      await kvSet(env, "users", key, existing);
+      await writeAudit(env, storedName, "account:password-lazy-migrate", `migrate password from Netlify: ${storedName}`, { username: storedName });
+    }
     return json({ ok: true, user: { username: storedName, isAdmin: await isAdminUser(env, storedName) }, token: await signToken(storedName, env) });
   }
   return bad("Unknown action.", 400);
@@ -863,6 +889,29 @@ async function handleAdmin(request, env, url) {
     const after = { username, createdAt: user.createdAt, isAdmin: await isAdminUser(env, username), isEnvAdmin: isEnvAdmin(username, env) };
     await writeAudit(env, auth.username, enabled ? "account:admin-grant" : "account:admin-revoke", `${enabled ? "grant admin" : "revoke admin"}: ${username}`, { before, after });
     return json({ ok: true, user: after });
+  }
+  if (action === "resetPassword") {
+    const username = normalizeUsername(body.username);
+    const password = validatePassword(body.password);
+    const key = userKey(username);
+    const user = await kvGet(env, "users", key);
+    if (!user) return bad("Account not found.", 404);
+    const hashed = await hashPassword(password);
+    const before = {
+      username,
+      isAdmin: await isAdminUser(env, username),
+      isEnvAdmin: isEnvAdmin(username, env),
+      passwordResetAt: user.passwordResetAt || "",
+      migratedFromNetlify: Boolean(user.migratedFromNetlify)
+    };
+    user.salt = hashed.salt;
+    user.hash = hashed.hash;
+    user.passwordResetAt = new Date().toISOString();
+    user.passwordResetBy = auth.username;
+    user.migratedFromNetlify = Boolean(user.migratedFromNetlify);
+    await kvSet(env, "users", key, user);
+    await writeAudit(env, auth.username, "account:password-reset", `reset password: ${username}`, { before, after: { username, passwordResetAt: user.passwordResetAt } });
+    return json({ ok: true, user: { username, createdAt: user.createdAt || "", isAdmin: await isAdminUser(env, username), isEnvAdmin: isEnvAdmin(username, env), passwordResetAt: user.passwordResetAt } });
   }
   if (action === "deleteUser") {
     const username = normalizeUsername(body.username);
