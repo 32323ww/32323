@@ -1,5 +1,5 @@
 const TOKEN_DAYS = 30;
-const USERNAME_RE = /^[\p{Script=Han}A-Za-z0-9_]{2,24}$/u;
+const USERNAME_RE = /^[\u4e00-\u9fffA-Za-z0-9_]{2,24}$/u;
 const LETTERS = ["A", "B", "C", "D", "E"];
 const schemaReady = new WeakSet();
 
